@@ -4,6 +4,7 @@ const exe = require ("./connection");
 const route = express.Router();
 const multer = require('multer');
 const path = require('path');
+const { swaggerUiSetup, swaggerUiDocument } = require('../swagger');
 
 
 const storage = multer.diskStorage({
@@ -18,10 +19,45 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
+/**
+ * @swagger
+ * /add:
+ *   get:
+ *     summary: Returns a hello message
+ *     responses:
+ *       200:
+ *         description: A hello message
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: 'Hello World!'
+ */
 
 route.get("/add",(req,res)=>{
     res.send("Hello World");
 })
+/**
+ * @swagger
+ * /add_address_details:
+ *   post:
+ *     summary: Insert address
+ *     responses:
+ *       200:
+ *         description: Insert address
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: ''
+ */
+
 route.post('/add_address_details', async (req, res) => {
 
     console.log('Request body:', req.body); 
@@ -55,7 +91,11 @@ route.post('/user-job-profile/:id', upload.fields([{ name: 'resume_file', maxCou
 
   const resume_file = req.files['resume_file'] ? req.files['resume_file'][0].buffer : null;
   const profile_picture = req.files['profile_picture'] ? req.files['profile_picture'][0].buffer : null;
-
+ 
+  const validStatuses = ['Active', 'Inactive'];
+    if (status && !validStatuses.includes(status)) {
+        return res.status(400).json({ error: 'Invalid status value. Must be "Active" or "Inactive"' });
+    }
   
   try {
       // Check if the user exists
@@ -79,13 +119,13 @@ route.post('/user-job-profile/:id', upload.fields([{ name: 'resume_file', maxCou
           await exe(`UPDATE user_job_profile
               SET position = $1, company = $2, education_degree = $3, education_field = $4, skills = $5, resume_file = $6, profile_picture = $7, status = $8, experience = $9, updated_at = $10
               WHERE user_id = $11`,
-              [position, company, education_degree, education_field, skills, resume_file, profile_picture, status, experience, new Date(), user_id]
+              [position, company, education_degree, education_field, skills, resume_file, profile_picture,  status || 'Active', experience, new Date(), user_id]
           );
           return res.status(200).json({ message: 'Profile updated successfully' });
       } else {
           await exe(`INSERT INTO user_job_profile (user_id, name, position, company, education_degree, education_field, skills, resume_file, profile_picture, status, experience)
               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-              [user_id, username, position, company, education_degree, education_field, skills, resume_file, profile_picture, status, experience]
+              [user_id, username, position, company, education_degree, education_field, skills, resume_file, profile_picture,  status || 'Active', experience]
           );
           return res.status(201).json({ message: 'Profile created successfully' });
       }
@@ -94,6 +134,7 @@ route.post('/user-job-profile/:id', upload.fields([{ name: 'resume_file', maxCou
       res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 
 
 route.get('/user-job-profile/:id', async (req, res) => {
@@ -186,36 +227,28 @@ route.get('/all-jobs', async (req, res) => {
 
     // Emergency contacts Api
              
-                      // Add Emergency Contacts
-
-
-route.post('/insert-contacts/:id', async (req, res) => {
+  // Add Emergency Contacts
+  route.post('/insert-contacts/:id', async (req, res) => {
     const {
         contact1_name, contact1_phone_number, contact1_relation,
         contact2_name, contact2_phone_number, contact2_relation,
         contact3_name, contact3_phone_number, contact3_relation,
-        contact4_name, contact4_phone_number, contact4_relation,
-        contact5_name, contact5_phone_number, contact5_relation
+        contact4_name, contact4_phone_number, contact4_relation
     } = req.body;
     const user_id = req.params.id;
 
-    // Create an array of contact objects
-    const contacts = [
+    // Create an array of contact objects from the request
+    const newContacts = [
         { name: contact1_name, phone_number: contact1_phone_number, relation: contact1_relation },
         { name: contact2_name, phone_number: contact2_phone_number, relation: contact2_relation },
         { name: contact3_name, phone_number: contact3_phone_number, relation: contact3_relation },
-        { name: contact4_name, phone_number: contact4_phone_number, relation: contact4_relation },
-        { name: contact5_name, phone_number: contact5_phone_number, relation: contact5_relation }
+        { name: contact4_name, phone_number: contact4_phone_number, relation: contact4_relation }
     ];
 
-    // Count the number of filled contacts
-    const filledContactsCount = contacts.filter(contact =>
-        contact.name && contact.phone_number && contact.relation
-    ).length;
-
-    if (filledContactsCount > 4) {
-        return res.status(400).json({ error: 'Cannot add more than 4 contacts' });
-    }
+    // Filter out contacts that are not null or empty (i.e., valid new contacts)
+    const nonNullContacts = newContacts.filter(contact =>
+        contact.name || contact.phone_number || contact.relation
+    );
 
     if (!user_id) {
         return res.status(400).json({ error: 'user_id is required' });
@@ -223,14 +256,44 @@ route.post('/insert-contacts/:id', async (req, res) => {
 
     try {
         // Check if the user exists
-        const userCheck = await exe(`SELECT user_id FROM users WHERE user_id = $1`, [user_id]);
+        const userCheck = await exe('SELECT user_id FROM users WHERE user_id = $1', [user_id]);
         if (userCheck.rowCount === 0) {
             return res.status(404).json({ error: 'User not found' });
         }
 
+        // Fetch existing contacts for this user
+        const existingContacts = await exe('SELECT * FROM emergency_contacts WHERE user_id = $1', [user_id]);
+
+        const existing = existingContacts.rows[0] || {}; // Handle cases where no contacts exist yet
+        const existingContactFields = [
+            { name: existing.contact1_name, phone_number: existing.contact1_phone_number, relation: existing.contact1_relation },
+            { name: existing.contact2_name, phone_number: existing.contact2_phone_number, relation: existing.contact2_relation },
+            { name: existing.contact3_name, phone_number: existing.contact3_phone_number, relation: existing.contact3_relation },
+            { name: existing.contact4_name, phone_number: existing.contact4_phone_number, relation: existing.contact4_relation }
+        ];
+
+        // Count how many existing contacts are complete (i.e., all fields are non-null and non-empty)
+        const completeExistingContacts = existingContactFields.filter(contact =>
+            contact.name && contact.phone_number && contact.relation
+        ).length;
+
+        // If the user has 4 complete contacts and is trying to add more, return an error
+        if (completeExistingContacts === 4 && nonNullContacts.length > 0) {
+            return res.status(400).json({ error: 'Cannot add a 5th contact. All 4 contact slots are already filled.' });
+        }
+
+        // Prepare values for insertion/updating, filling only null/empty slots
+        const values = [
+            user_id,
+            contact1_name || existing.contact1_name || null, contact1_phone_number || existing.contact1_phone_number || null, contact1_relation || existing.contact1_relation || null,
+            contact2_name || existing.contact2_name || null, contact2_phone_number || existing.contact2_phone_number || null, contact2_relation || existing.contact2_relation || null,
+            contact3_name || existing.contact3_name || null, contact3_phone_number || existing.contact3_phone_number || null, contact3_relation || existing.contact3_relation || null,
+            contact4_name || existing.contact4_name || null, contact4_phone_number || existing.contact4_phone_number || null, contact4_relation || existing.contact4_relation || null
+        ];
+
         // Insert or update contacts
-        await exe(`
-            INSERT INTO emergency_contacts (
+        await exe(
+            `INSERT INTO emergency_contacts (
                 user_id, contact1_name, contact1_phone_number, contact1_relation,
                 contact2_name, contact2_phone_number, contact2_relation,
                 contact3_name, contact3_phone_number, contact3_relation,
@@ -255,14 +318,7 @@ route.post('/insert-contacts/:id', async (req, res) => {
                 contact4_name = COALESCE(EXCLUDED.contact4_name, emergency_contacts.contact4_name),
                 contact4_phone_number = COALESCE(EXCLUDED.contact4_phone_number, emergency_contacts.contact4_phone_number),
                 contact4_relation = COALESCE(EXCLUDED.contact4_relation, emergency_contacts.contact4_relation),
-                updated_at = CURRENT_TIMESTAMP
-        `, [
-            user_id,
-            contact1_name || null, contact1_phone_number || null, contact1_relation || null,
-            contact2_name || null, contact2_phone_number || null, contact2_relation || null,
-            contact3_name || null, contact3_phone_number || null, contact3_relation || null,
-            contact4_name || null, contact4_phone_number || null, contact4_relation || null
-        ]);
+                updated_at = CURRENT_TIMESTAMP`, values);
 
         res.status(200).json({ message: 'Contacts inserted or updated successfully' });
     } catch (error) {
@@ -271,6 +327,10 @@ route.post('/insert-contacts/:id', async (req, res) => {
     }
 });
 
+
+
+
+                    
             //   Delete contact 1
 
 route.post('/delete-contact1/:id', async (req, res) => {
@@ -407,7 +467,7 @@ route.post('/delete-contact4/:id', async (req, res) => {
 });
 
 
-route.get('/get-contacts/:id', async (req, res) => {
+route.get('/emergency-contacts/:id', async (req, res) => {
     const user_id = req.params.id;
 
     if (!user_id) {
@@ -451,161 +511,25 @@ route.get('/get-contacts/:id', async (req, res) => {
     }
 });
 
+route.get('/subscription-plan/:id', async (req, res) => {
+    const planId = req.params.id;
+
+    try {
+        const result = await exe(
+            'SELECT * FROM SubscriptionPlan WHERE id = $1',
+            [planId]
+        );
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Plan not found' });
+        }
+
+        res.status(200).json(result.rows[0]);
+    } catch (error) {
+        console.error('Error executing query', error.stack);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
 
 
 module.exports = route;
-
-
-
-// CREATE TABLE contacts (
-//   user_id INT PRIMARY KEY, -- This assumes one row per user_id
-//   contact1_name VARCHAR(100),
-//   contact1_phone_number VARCHAR(20),
-//   contact1_relation VARCHAR(50),
-//   contact2_name VARCHAR(100),
-//   contact2_phone_number VARCHAR(20),
-//   contact2_relation VARCHAR(50),
-//   contact3_name VARCHAR(100),
-//   contact3_phone_number VARCHAR(20),
-//   contact3_relation VARCHAR(50),
-//   contact4_name VARCHAR(100),
-//   contact4_phone_number VARCHAR(20),
-//   contact4_relation VARCHAR(50),
-//   FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
-// );
-// INSERT INTO contacts (user_id, contact1_name, contact1_phone_number, contact1_relation, contact1_is_deleted,
-//   contact2_name, contact2_phone_number, contact2_relation, contact2_is_deleted,
-//   contact3_name, contact3_phone_number, contact3_relation, contact3_is_deleted,
-//   contact4_name, contact4_phone_number, contact4_relation, contact4_is_deleted) 
-// VALUES (1, 'Alice Smith', '555-1234', 'Friend', FALSE,
-// 'Bob Johnson', '555-5678', 'Colleague', FALSE,
-// 'Carol Davis', '555-8765', 'Family', FALSE,
-// 'David Brown', '555-4321', 'Neighbor', FALSE);
-
-
-// UPDATE contacts
-// SET contact1_is_deleted = TRUE
-// WHERE user_id = 1;
-
-// UPDATE contacts
-// SET contact1_is_deleted = TRUE
-// WHERE user_id = 1;
-
-
-// SELECT user_id, contact1_name, contact1_phone_number, contact1_relation
-// FROM contacts
-// WHERE user_id = 1
-//   AND contact1_is_deleted = FALSE;
-
-// -- Repeat similarly for other contacts, or use dynamic queries if necessary
-
-// const express = require('express');
-// const { Pool } = require('pg');
-// const bodyParser = require('body-parser');
-
-// // Initialize Express app
-// const app = express();
-// app.use(bodyParser.json());
-
-// Configure PostgreSQL connection
-// const pool = new Pool({
-//     user: 'your-db-user',
-//     host: 'localhost',
-//     database: 'your-db-name',
-//     password: 'your-db-password',
-//     port: 5432,
-// });
-
-// Define the route to update contact details
-// app.post('/update-contact', async (req, res) => {
-//     const { user_id, contact1, contact2, contact3, contact4 } = req.body;
-
-//     if (!user_id) {
-//         return res.status(400).json({ error: 'user_id is required' });
-//     }
-
-//     const client = await pool.connect();
-
-//     try {
-//         await client.query('BEGIN');
-
-//         // Mark existing contacts as deleted
-//         await client.query(`
-//             UPDATE contacts
-//             SET contact1_is_deleted = TRUE
-//             WHERE user_id = $1 AND contact1_is_deleted = FALSE;
-//         `, [user_id]);
-
-//         await client.query(`
-//             UPDATE contacts
-//             SET contact2_is_deleted = TRUE
-//             WHERE user_id = $1 AND contact2_is_deleted = FALSE;
-//         `, [user_id]);
-
-//         await client.query(`
-//             UPDATE contacts
-//             SET contact3_is_deleted = TRUE
-//             WHERE user_id = $1 AND contact3_is_deleted = FALSE;
-//         `, [user_id]);
-
-//         await client.query(`
-//             UPDATE contacts
-//             SET contact4_is_deleted = TRUE
-//             WHERE user_id = $1 AND contact4_is_deleted = FALSE;
-//         `, [user_id]);
-
-//         // Insert new contact details
-//         await client.query(`
-//             INSERT INTO contacts (
-//                 user_id, contact1_name, contact1_phone_number, contact1_relation, contact1_is_deleted,
-//                 contact2_name, contact2_phone_number, contact2_relation, contact2_is_deleted,
-//                 contact3_name, contact3_phone_number, contact3_relation, contact3_is_deleted,
-//                 contact4_name, contact4_phone_number, contact4_relation, contact4_is_deleted
-//             ) VALUES (
-//                 $1, $2, $3, $4, FALSE,
-//                 $5, $6, $7, FALSE,
-//                 $8, $9, $10, FALSE,
-//                 $11, $12, $13, FALSE
-//             )
-//             ON CONFLICT (user_id) DO UPDATE
-//             SET
-//                 contact1_name = EXCLUDED.contact1_name,
-//                 contact1_phone_number = EXCLUDED.contact1_phone_number,
-//                 contact1_relation = EXCLUDED.contact1_relation,
-//                 contact1_is_deleted = EXCLUDED.contact1_is_deleted,
-//                 contact2_name = EXCLUDED.contact2_name,
-//                 contact2_phone_number = EXCLUDED.contact2_phone_number,
-//                 contact2_relation = EXCLUDED.contact2_relation,
-//                 contact2_is_deleted = EXCLUDED.contact2_is_deleted,
-//                 contact3_name = EXCLUDED.contact3_name,
-//                 contact3_phone_number = EXCLUDED.contact3_phone_number,
-//                 contact3_relation = EXCLUDED.contact3_relation,
-//                 contact3_is_deleted = EXCLUDED.contact3_is_deleted,
-//                 contact4_name = EXCLUDED.contact4_name,
-//                 contact4_phone_number = EXCLUDED.contact4_phone_number,
-//                 contact4_relation = EXCLUDED.contact4_relation,
-//                 contact4_is_deleted = EXCLUDED.contact4_is_deleted,
-//                 updated_at = CURRENT_TIMESTAMP
-//         `, [
-//             user_id, contact1?.name, contact1?.phone_number, contact1?.relation,
-//             contact2?.name, contact2?.phone_number, contact2?.relation,
-//             contact3?.name, contact3?.phone_number, contact3?.relation,
-//             contact4?.name, contact4?.phone_number, contact4?.relation
-//         ]);
-
-//         await client.query('COMMIT');
-//         res.status(200).json({ message: 'Contacts updated successfully' });
-//     } catch (error) {
-//         await client.query('ROLLBACK');
-//         console.error('Error updating contacts:', error);
-//         res.status(500).json({ error: 'Failed to update contacts' });
-//     } finally {
-//         client.release();
-//     }
-// });
-
-// // Start the server
-// const PORT = process.env.PORT || 3000;
-// app.listen(PORT, () => {
-//     console.log(`Server is running on port ${PORT}`);
-// });
