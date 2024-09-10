@@ -112,34 +112,14 @@ route.get('/subscription-plan/:id', async (req, res) => {
 
 
 route.post('/job-postings', async (req, res) => {
-    const {
-      job_title,
-      company_name,
-      location,
-      email,
-      contact_number,
-      skills,
-      education,
-      pay,
-      job_type,
-      shift_schedule,
-      job_description,
-      skills_and_responsibilities,
-      qualifications,
-      status,
-      category // New field for job category
-    } = req.body;
-  
-    // Create an errors object
+    const {job_title,company_name,location,email,contact_number,  skills,education, pay,job_type,shift_schedule,job_description, skills_and_responsibilities, qualifications,status, category } = req.body;
+
     const errors = {};
-  
-    // Validate required fields
     if (!job_title) errors.job_title = 'Job title is required';
     if (!company_name) errors.company_name = 'Company name is required';
     if (!location) errors.location = 'Location is required';
     if (!category) errors.category = 'Category is required'; // Validate category
-  
-    // If there are any errors, return them
+
     if (Object.keys(errors).length > 0) {
       return res.status(400).json({
         message: 'Validation errors',
@@ -155,30 +135,14 @@ route.post('/job-postings', async (req, res) => {
       const result = await exe(
         `INSERT INTO job_postings (
           job_title, company_name, location, email, contact_number, skills, education, pay, job_type, shift_schedule, job_description, skills_and_responsibilities, qualifications, status, category
-        ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
-        ) RETURNING *`,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *`,
         [
-          job_title,
-          company_name,
-          location,
-          email || null,
-          contact_number || null,
-          skills || null,
-          education || null,
-          pay || null,
-          job_type || null,
-          shift_schedule || null,
-          job_description || null,
-          skills_and_responsibilities || null,
-          qualifications || null,
-          status || 'Open',
-          category // Include category in the insert statement
-        ]
-      );
+          job_title, company_name,location, email || null,contact_number || null, skills || null,education || null,pay || null, job_type || null,shift_schedule || null, job_description || null,skills_and_responsibilities || null, qualifications || null, status || 'Open',category 
+        ] );
   
       const newJobPosting = result.rows[0];
-      res.status(201).json(newJobPosting);
+      res.status(200).json({ message: 'Job posted successfully' });
+
     } catch (error) {
       console.error('Error inserting job posting:', error);
       res.status(500).json({ error: 'An error occurred while adding the job posting.' });
@@ -299,36 +263,135 @@ route.put('/update-job-postings/:id', async (req, res) => {
       values.push(status || 'Open');
   }
 
-  // Add the updated_at field
   query += `updated_at = CURRENT_TIMESTAMP, `;
 
-  // Remove the trailing comma and space
   query = query.slice(0, -2);
 
-  // Add the WHERE clause
   query += ` WHERE id = $${valueIndex} RETURNING *`;
   values.push(id);
 
   try {
-      // Log the query and values for debugging
       console.log('Executing query:', query);
       console.log('With values:', values);
-
-      // Execute the dynamic UPDATE query
       const result = await exe(query, values);
 
-      // Check if the record was updated
       if (result.rowCount === 0) {
           return res.status(404).json({ error: 'Job posting not found' });
       }
 
-      // Return the updated job posting
       const updatedJobPosting = result.rows[0];
-      res.status(200).json(updatedJobPosting);
+      res.status(200).json({ message: 'Job posting updated successfully' });
   } catch (error) {
       console.error('Error updating job posting:', error);
       res.status(500).json({ error: 'An error occurred while updating the job posting' });
   }
+});
+
+//  *** Fitness***
+
+//             ************** Health Videos ***********
+
+route.post('/health-video', async (req, res) => {
+    const { description, category, subcategory, video_url, is_popular} = req.body;
+
+    if (!category || !type) {
+      return res.status(400).json({ description: 'This field are required',category:'This field are required',subcategory: 'This field are required',video_url:'This field are required',is_popular:'This field are required'});
+    }
+    try {
+      const query = `INSERT INTO health_videos (description, category, subcategory, video_url, is_popular) VALUES ($1, $2, $3, $4, $5) RETURNING *;`;
+      const values = [description, category, subcategory, video_url, is_popular || false];
+      const result = await exe(query, values);
+
+      res.status(201).json({
+        message: 'Video added successfully',
+        video: result.rows[0] });
+
+    } catch (error) {
+      console.error('Error inserting video:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  });
+
+route.put('/health-video/:id', async (req, res) => {
+  const { id } = req.params;  // Get video_id from the URL parameter
+  const { description, category, subcategory, video_url, is_popular } = req.body;
+
+  if (!category || !subcategory || !video_url || is_popular === undefined) {
+    return res.status(400).json({
+      error: 'All fields (category, subcategory, video_url, is_popular) are required'
+    });
+  }
+
+  try {
+    const query = `UPDATE health_videos SET description = $1,category = $2,subcategory = $3,video_url = $4,is_popular = $5,updated_at = CURRENT_TIMESTAMP WHERE video_id = $6 RETURNING *;`;
+    
+    const values = [description, category, subcategory, video_url, is_popular, id];
+
+    const result = await exe(query, values);
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Video not found' });
+    }
+    res.status(200).json({
+      message: 'Video updated successfully',
+      video: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Error updating video:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+//               **************** live streamming **********
+
+route.post('/live-streams', async (req, res) => {
+    const { date, time, title, category, description, video_url, is_live } = req.body;
+
+    if (!date || !time || !title || typeof is_live !== 'boolean') {
+        return res.status(400).json({ error: 'Required fields are missing or invalid' });
+    }
+
+    try {
+        const result = await exe(`
+            INSERT INTO live_streaming (date, time, title, category, description, video_url, is_live)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING id, date, time, title, category, description, video_url, is_live, created_time
+        `, [date, time, title, category, description, video_url, is_live]);
+
+        res.status(201).json({message: 'Live stream created successfully',
+        });
+    } catch (error) {
+        console.error('Error inserting data:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+route.put('/live-streams/:id', async (req, res) => {
+    const { id } = req.params;
+    const { date, time, title, category, description, video_url, is_live } = req.body;
+
+    // Validate required fields
+    if (!date || !time || !title || typeof is_live !== 'boolean') {
+        return res.status(400).json({ error: 'Required fields are missing or invalid' });
+    }
+
+    try {
+        const result = await exe(`
+            UPDATE live_streaming
+            SET date = $1, time = $2, title = $3, category = $4, description = $5, video_url = $6, is_live = $7, updated_time = CURRENT_TIMESTAMP
+            WHERE id = $8
+            RETURNING id, date, time, title, category, description, video_url, is_live, created_time, updated_time
+        `, [date, time, title, category, description, video_url, is_live, id]);
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Live stream not found' });
+        }
+
+        res.status(200).json({message: 'Live stream updated successfully',
+        });
+    } catch (error) {
+        console.error('Error updating data:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 });
 
 

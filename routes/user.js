@@ -531,5 +531,73 @@ route.get('/subscription-plan/:id', async (req, res) => {
     }
 });
 
+//             **************Get Health Videos ***********
 
+// Get all health videos
+route.get('/health-videos', async (req, res) => {
+    try {
+      const query = 'SELECT * FROM health_videos';
+      const result = await exe(query);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ message: 'No videos found' });
+      }
+      res.status(200).json({
+        message: 'Videos retrieved successfully',
+        videos: result.rows
+      });
+    } catch (error) {
+      console.error('Error fetching videos:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  });
+
+  //               **************** live streamming **********
+  // get live streamming
+
+  route.get('/live-streams', async (req, res) => {
+    try {
+        const result = await exe(`
+            SELECT id, date, time, title, category, description, video_url, is_live, created_time, updated_time
+            FROM live_streaming
+        `);
+
+        const streams = result.rows;
+        res.status(200).json(streams);
+    } catch (error) {
+        console.error('Error retrieving data:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+  
 module.exports = route;
+
+
+// CREATE TABLE live_streaming (
+//     id SERIAL PRIMARY KEY,
+//     date DATE NOT NULL,
+//     time TIME NOT NULL,
+//     title VARCHAR(255) NOT NULL,
+//     category VARCHAR(100),
+//     image TEXT,
+//     description TEXT,
+//     video_url TEXT,
+//     updated_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+//     created_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+//     is_live BOOLEAN NOT NULL
+// );
+
+
+// CREATE TABLE health_events (
+//     id SERIAL PRIMARY KEY,
+//     date DATE NOT NULL,
+//     time TIME NOT NULL,
+//     image TEXT,
+//     title VARCHAR(255) NOT NULL,
+//     description TEXT,
+//     video_url TEXT,
+//     category VARCHAR(100),
+//     created_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+//     updated_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+// );

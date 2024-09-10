@@ -5,6 +5,7 @@
         "fileupload",
         "ILIKE",
         "pincode",
-        "specialities"
+        "specialities",
+        "streamming"
     ]
 }
