@@ -3,7 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const router = express.Router();
 const fs=require('fs')
-const exe = require('./connection'); // Ensure the path is correct
+const exe = require('../db'); // Ensure the path is correct
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -28,19 +28,9 @@ router.post('/register', upload.single('documentName'), async (req, res) => {
             return res.status(400).json({ message: 'Document upload is required.' });
         }
 
-        const {
-            firstName,
-            lastName,
-            email,
-            phoneNumber,
-            regNo,
-            clinicName,
-            clinicAddress,
-            qualificationSpecialization,
-            servicesOffered
-        } = req.body;
-
-        // Create an errors object
+        const {firstName,lastName, email,phoneNumber,regNo,clinicName, clinicAddress,qualificationSpecialization,
+            servicesOffered } = req.body;
+            
         const errors = {};
 
         // Validate required fields
