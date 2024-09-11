@@ -1,4 +1,3 @@
-
 const express = require ("express");
 const exe = require ("../db");
 const route = express.Router();
@@ -19,67 +18,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-/**
- * @swagger
- * /add:
- *   get:
- *     summary: Returns a hello message
- *     responses:
- *       200:
- *         description: A hello message
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: 'Hello World!'
- */
 
-route.get("/add",(req,res)=>{
-    res.send("Hello World");
-})
-/**
- * @swagger
- * /add_address_details:
- *   post:
- *     summary: Insert address
- *     responses:
- *       200:
- *         description: Insert address
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: ''
- */
-
-route.post('/add_address_details', async (req, res) => {
-
-    console.log('Request body:', req.body); 
-
-    const { pincode, house_number, recipient_name, phone_number, address_name_type } = req.body;
-    
-    if (!pincode || !house_number || !recipient_name || !phone_number || !address_name_type) {
-        return res.status(400).json({ pincode: 'fields are required',house_number:'fields are required',recipient_name:'fields are required',phone_number:'fields are required',address_name_type:'fields are required'});
-    }
-
-    const sql = `INSERT INTO add_address(pincode, house_number, recipient_name, phone_number, address_name_type) VALUES ($1, $2, $3, $4, $5)`;
-    const values = [pincode, house_number, recipient_name, phone_number, address_name_type];
-  
-    try {
-        const result = await exe(sql, values);
-        res.status(201).json({ success: 'Address Added successfully' });
-    } catch (error) {
-        console.error('Database error:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-  
-});
 
     //             ************** User Job Profile ***********
 
@@ -157,71 +96,71 @@ route.post('/add_address_details', async (req, res) => {
 
       //                ************** Search Jobs ***********
 
-route.get('/search-jobs', async (req, res) => {
-    try {
-      console.log('Query parameters:', req.query);
+// route.get('/search-jobs', async (req, res) => {
+//     try {
+//       console.log('Query parameters:', req.query);
   
-      const { jobTitle, companyName, location } = req.query;
+//       const { jobTitle, companyName, location } = req.query;
   
-      // Initialize query and values
-      let query = 'SELECT * FROM job_postings WHERE 1=1';
-      const values = [];
-      let paramIndex = 1;
+//       // Initialize query and values
+//       let query = 'SELECT * FROM job_postings WHERE 1=1';
+//       const values = [];
+//       let paramIndex = 1;
   
-      // Add conditions to the query based on the parameters
-      if (jobTitle) {
-        query += ` AND job_title ILIKE $${paramIndex}`;
-        values.push(`%${jobTitle}%`);
-        paramIndex++;
-      }
-      if (companyName) {
-        query += ` AND company_name ILIKE $${paramIndex}`;
-        values.push(`%${companyName}%`);
-        paramIndex++;
-      }
-      if (location) {
-        query += ` AND location ILIKE $${paramIndex}`;
-        values.push(`%${location}%`);
-        paramIndex++;
-      }
+//       // Add conditions to the query based on the parameters
+//       if (jobTitle) {
+//         query += ` AND job_title ILIKE $${paramIndex}`;
+//         values.push(`%${jobTitle}%`);
+//         paramIndex++;
+//       }
+//       if (companyName) {
+//         query += ` AND company_name ILIKE $${paramIndex}`;
+//         values.push(`%${companyName}%`);
+//         paramIndex++;
+//       }
+//       if (location) {
+//         query += ` AND location ILIKE $${paramIndex}`;
+//         values.push(`%${location}%`);
+//         paramIndex++;
+//       }
   
-      // Log the query and values for debugging
-      console.log('Constructed query:', query);
-      console.log('With values:', values);
+//       // Log the query and values for debugging
+//       console.log('Constructed query:', query);
+//       console.log('With values:', values);
   
-      // Execute the query
-      const result = await exe(query, values);
+//       // Execute the query
+//       const result = await exe(query, values);
   
-      // Log result for debugging
-      console.log('Query result:', result.rows);
+//       // Log result for debugging
+//       console.log('Query result:', result.rows);
   
-      // Check if any jobs are found
-      if (result.rowCount > 0) {
-        res.json(result.rows);
-      } else {
-        res.status(404).json({ error: 'No jobs found for the specified criteria' });
-      }
-    } catch (error) {
-      console.error('Error executing query:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  });
+//       // Check if any jobs are found
+//       if (result.rowCount > 0) {
+//         res.json(result.rows);
+//       } else {
+//         res.status(404).json({ error: 'No jobs found for the specified criteria' });
+//       }
+//     } catch (error) {
+//       console.error('Error executing query:', error);
+//       res.status(500).json({ error: 'Internal server error' });
+//     }
+//   });
 
-route.get('/all-jobs', async (req, res) => {
-    try {
-      const query = 'SELECT * FROM job_postings';
-      const result = await exe(query);
-      console.log('Query result:', result.rows);
-      if (result.rowCount > 0) {
-        res.json(result.rows);
-      } else {
-        res.status(404).json({ error: 'No jobs found' });
-      }
-    } catch (error) {
-      console.error('Error executing query:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  });
+// route.get('/all-jobs', async (req, res) => {
+//     try {
+//       const query = 'SELECT * FROM job_postings';
+//       const result = await exe(query);
+//       console.log('Query result:', result.rows);
+//       if (result.rowCount > 0) {
+//         res.json(result.rows);
+//       } else {
+//         res.status(404).json({ error: 'No jobs found' });
+//       }
+//     } catch (error) {
+//       console.error('Error executing query:', error);
+//       res.status(500).json({ error: 'Internal server error' });
+//     }
+//   });
 
     //             ************** Emergency contacts Api ***********
              
@@ -555,36 +494,27 @@ route.get('/health-videos', async (req, res) => {
   //               **************** live streamming **********
   // get live streamming
 
-  route.get('/live-streams', async (req, res) => {
-    try {
-        const result = await exe(` SELECT * FROM live_streaming `);
-         const streams = result.rows;
-        res.status(200).json(streams);
-    } catch (error) {
-        console.error('Error retrieving data:', error);
-        res.status(500).json({ error: 'Internal server error' });
-    }
-});
-route.get('/live-streams', async (req, res) => {
-    try {
-        const result = await exe(` SELECT * FROM live_streaming `);
-         const streams = result.rows;
-        res.status(200).json(streams);
-    } catch (error) {
-        console.error('Error retrieving data:', error);
-        res.status(500).json({ error: 'Internal server error' });
-    }
-});
-route.get('/health-events', async (req, res) => {
-    try {
-        const result = await exe(` SELECT * FROM health_events `);
-         const streams = result.rows;
-        res.status(200).json(streams);
-    } catch (error) {
-        console.error('Error retrieving data:', error);
-        res.status(500).json({ error: 'Internal server error' });
-    }
-});
+
+// route.get('/live-streams', async (req, res) => {
+//     try {
+//         const result = await exe(` SELECT * FROM live_streaming `);
+//          const streams = result.rows;
+//         res.status(200).json(streams);
+//     } catch (error) {
+//         console.error('Error retrieving data:', error);
+//         res.status(500).json({ error: 'Internal server error' });
+//     }
+// });
+// route.get('/health-events', async (req, res) => {
+//     try {
+//         const result = await exe(` SELECT * FROM health_events `);
+//          const streams = result.rows;
+//         res.status(200).json(streams);
+//     } catch (error) {
+//         console.error('Error retrieving data:', error);
+//         res.status(500).json({ error: 'Internal server error' });
+//     }
+// });
   
 module.exports = route;
 
