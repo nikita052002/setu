@@ -1,11 +1,17 @@
 {
     "cSpell.words": [
+        "addfamily",
+        "addfitness",
+        "allposts",
         "bodyparser",
         "esetubackend",
         "fileupload",
+        "getfitness",
         "ILIKE",
+        "openapi",
         "pincode",
         "specialities",
-        "streamming"
+        "streamming",
+        "unliked"
     ]
 }
