@@ -17,22 +17,23 @@ const createHealthVideo = async (req, res) => {
 const updateHealthVideo = async (req, res) => {
     const { videoId } = req.params;
     const videoData = req.body;
+    if (Object.keys(videoData).length === 0) {
+        return res.status(400).json({ message: 'No fields to update' });
+    }
     try {
         const result = await fitnessService.updateHealthVideo(videoId, videoData);
-        if (!result.rows[0]) {
+        if (!result) {
             return res.status(404).json({ message: 'Video not found' });
-        }
+        }      
         res.status(200).json({
             message: 'Health video updated successfully',
-            video: result.rows[0]
+            video: result.rows[0] // Assuming result is already the updated video object
         });
     } catch (error) {
         console.error('Error updating health video:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 };
-
-// Controller for Live Streams
 
 const createLiveStream = async (req, res) => {
     const liveStreamData = req.body;
@@ -52,25 +53,22 @@ const createLiveStream = async (req, res) => {
 
 const updateLiveStream = async (req, res) => {
     const { streamId } = req.params;
-    const liveStreamData = req.body;
-    const imageFilename = req.file ? req.file.filename : null;
-    console.log(imageFilename);
+    const liveStreamData = req.body; 
+    const imageFilename = req.file ? req.file.filename : null; 
     try {
         const result = await fitnessService.updateLiveStream(streamId, liveStreamData, imageFilename);
-        if (!result.rows[0]) {
+        if (!result) {
             return res.status(404).json({ message: 'Live stream not found' });
         }
         res.status(200).json({
             message: 'Live stream updated successfully',
-            stream: result.rows[0]
+            stream: result.rows[0] // Return the updated stream
         });
     } catch (error) {
         console.error('Error updating live stream:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 };
-
-// Controller for Health Events
 
 const createHealthEvent = async (req, res) => {
     const eventData = req.body;
@@ -87,11 +85,11 @@ const createHealthEvent = async (req, res) => {
     }
 };
 
-const updateHealthEvent = async (req, res) => {
+const updateHealthEventController = async (req, res) => {
     const { eventId } = req.params;
     const eventData = req.body;
     const imageFilename = req.file ? req.file.filename : null;
-    console.log(imageFilename);
+
     try {
         const result = await fitnessService.updateHealthEvent(eventId, eventData, imageFilename);
         if (!result.rows[0]) {
@@ -113,38 +111,66 @@ const createPost = async (req, res) => {
         const imageFilename = req.file ? req.file.filename : null; // Handle image upload (optional)
 
         const newPost = await fitnessService.createPost(postData, imageFilename);
-        return res.status(201).json({ message: 'Post created successfully', data: newPost });
+        return res.status(201).json({ message: 'Post created successfully', data: newPost.rows[0] });
     } catch (error) {
         console.error('Error creating post:', error);
         return res.status(500).json({ error: 'Internal server error' });
     }
 };
 
-const updatePost = (req, res) => {
-    const { postId } = req.params; // Get postId from the URL
-    const postData = req.body;     // Get updated post data from the request body
+const updatePostController = async (req, res) => {
+    const { postId } = req.params;
+    const postData = req.body;
+    const imageFilename = req.file ? req.file.filename : null;
+    
+    // If an image is uploaded, add it to postData
+    if (imageFilename) {
+        postData.image = imageFilename;
+    }
 
-    fitnessService .updatePost(postId, postData) .then((updatedPost) => {
-    if (updatedPost) {
-                res.status(200).json({ success: true, message: 'Post updated successfully',  data: updatedPost, });
-            } else {
-                res.status(404).json({success: false,message: 'Post not found',});
-            }
-        })
-        .catch((error) => {
+    try {
+        // Attempt to update the post
+        const updatedPost = await fitnessService.updatePost(postId, postData);
+        
+        if (updatedPost) {
+            // Post updated successfully
+            res.status(200).json({
+                success: true,
+                message: 'Post updated successfully',
+                data: updatedPost,
+            });
+        } else {
+            // Post not found
+            res.status(404).json({
+                success: false,
+                message: 'Post not found',
+            });
+        }
+    } catch (error) {
+        if (error.message === 'No fields provided for update.') {
+            // Handle case where no fields were provided
+            res.status(400).json({
+                success: false,
+                message: 'No fields provided for update.',
+            });
+        } else {
+            // Internal server error
             console.error('Error updating post:', error);
-            res.status(500).json({ success: false, message: 'Internal server error', });
-        });
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error',
+            });
+        }
+    }
 };
 
-// Exporting the functions to be used in routes
 module.exports = {
     createHealthVideo,
     updateHealthVideo,
     createLiveStream,
     updateLiveStream,
     createHealthEvent,
-    updateHealthEvent,
+    updateHealthEventController,
     createPost,
-    updatePost
+    updatePostController
 };

@@ -81,6 +81,7 @@ router.post('/health-videos', fitnessController.createHealthVideo);
  *         description: Internal Server Error
  */
 router.put('/health-videos/:videoId', fitnessController.updateHealthVideo);
+
 /**
  * @swagger
  * /api/admin/live-streams:
@@ -118,23 +119,21 @@ router.put('/health-videos/:videoId', fitnessController.updateHealthVideo);
  *       500:
  *         description: Internal Server Error
  */
-
 router.post('/live-streams',upload.single('imageFilename'), fitnessController.createLiveStream);
-
 /**
  * @swagger
  * /api/admin/live-streams/{streamId}:
  *   put:
- *     summary: Admin - Update a live stream
+ *     summary: Update live stream details
  *     tags:
  *       - Admin Fitness
  *     parameters:
- *       - in: path
- *         name: streamId
- *         schema:
- *           type: string
+ *       - name: streamId
+ *         in: path
  *         required: true
- *         description: The ID of the stream to update
+ *         description: The ID of the live stream to update
+ *         schema:
+ *           type: integer
  *     requestBody:
  *       required: true
  *       content:
@@ -144,37 +143,107 @@ router.post('/live-streams',upload.single('imageFilename'), fitnessController.cr
  *             properties:
  *               date:
  *                 type: string
+ *                 format: date
+ *                 example: "2024-09-30"
  *               time:
  *                 type: string
+ *                 example: "15:00"
  *               title:
  *                 type: string
+ *                 example: "New Fitness Live Stream"
+ *               imageFilename:
+ *                 type: string
+ *                 format: binary   # Change to binary to indicate file upload
+ *                 description: "The image file for the live stream"
  *               category:
  *                 type: string
+ *                 example: "Fitness"
  *               description:
  *                 type: string
+ *                 example: "Join us for a new fitness session!"
  *               video_url:
  *                 type: string
- *               image:
- *                 type: string
- *                 format: binary
+ *                 example: "https://example.com/video"
  *               is_live:
  *                 type: boolean
+ *                 example: true
  *               status:
  *                 type: string
+ *                 enum: [Active, Inactive]
+ *                 example: "Active"
  *     responses:
  *       200:
  *         description: Live stream updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Live stream updated successfully"
+ *                 stream:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     date:
+ *                       type: string
+ *                     time:
+ *                       type: string
+ *                     title:
+ *                       type: string
+ *                     imageFilename:
+ *                       type: string
+ *                       format: binary
+ *                     category:
+ *                       type: string
+ *                     description:
+ *                       type: string
+ *                     video_url:
+ *                       type: string
+ *                     is_live:
+ *                       type: boolean
+ *                     status:
+ *                       type: string
  *       404:
- *         description: Stream not found
+ *         description: Live stream not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Live stream not found"
+ *       400:
+ *         description: Bad Request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "No fields provided for update."
  *       500:
  *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Internal Server Error"
  */
-router.put('/live-streams/:streamId', fitnessController.updateLiveStream);
+
+router.put('/live-streams/:streamId',upload.single('imageFilename'), fitnessController.updateLiveStream);
 /**
  * @swagger
  * /api/admin/health-events:
  *   post:
- *     summary: Admin - Create a health event
+ *     summary: Admin - Create a new health event
  *     tags:
  *       - Admin Fitness
  *     requestBody:
@@ -186,32 +255,92 @@ router.put('/live-streams/:streamId', fitnessController.updateLiveStream);
  *             properties:
  *               title:
  *                 type: string
+ *                 example: "New Health Event"
  *               category:
  *                 type: string
+ *                 example: "Fitness"
  *               description:
  *                 type: string
+ *                 example: "Join us for a new health event!"
  *               video_url:
  *                 type: string
- *               image:
+ *                 example: "https://example.com/video"
+ *               imageFilename:
  *                 type: string
  *                 format: binary
+ *                 description: "The image file for the health event"
  *               is_live:
  *                 type: boolean
+ *                 example: true
  *               is_popular:
  *                 type: boolean
+ *                 example: false
  *               status:
  *                 type: string
+ *                 example: "Active"
  *               date:
  *                 type: string
+ *                 format: date
+ *                 example: "2024-10-01"
  *               time:
  *                 type: string
+ *                 format: time
+ *                 example: "14:00"
  *     responses:
- *       201:
+ *       200:
  *         description: Health event created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Health event created successfully"
+ *                 event:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     title:
+ *                       type: string
+ *                     category:
+ *                       type: string
+ *                     description:
+ *                       type: string
+ *                     video_url:
+ *                       type: string
+ *                     is_live:
+ *                       type: boolean
+ *                     is_popular:
+ *                       type: boolean
+ *                     status:
+ *                       type: string
+ *                     date:
+ *                       type: string
+ *                     time:
+ *                       type: string
+ *       404:
+ *         description: Event not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Event not found"
  *       500:
  *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Internal Server Error"
  */
-
 router.post('/health-events',upload.single('imageFilename'),fitnessController.createHealthEvent);
 /**
  * @swagger
@@ -242,7 +371,7 @@ router.post('/health-events',upload.single('imageFilename'),fitnessController.cr
  *                 type: string
  *               video_url:
  *                 type: string
- *               image:
+ *               imageFilename:
  *                 type: string
  *                 format: binary
  *               is_live:
@@ -263,7 +392,7 @@ router.post('/health-events',upload.single('imageFilename'),fitnessController.cr
  *       500:
  *         description: Internal Server Error
  */
-router.put('/health-events/:eventId', fitnessController.updateHealthEvent);
+router.put('/health-events/:eventId',upload.single('imageFilename'), fitnessController.updateHealthEventController);
 /**
  * @swagger
  * /api/admin/posts:
@@ -320,15 +449,20 @@ router.post('/posts', upload.single('image'), fitnessController.createPost);
  *             properties:
  *               title:
  *                 type: string
+ *                 description: The title of the post
  *               description:
  *                 type: string
+ *                 description: The description of the post
  *               category:
  *                 type: string
+ *                 description: The category of the post
  *               image:
  *                 type: string
  *                 format: binary
+ *                 description: The image file to upload
  *               status:
  *                 type: string
+ *                 description: The status of the post (e.g., 'published', 'draft')
  *     responses:
  *       200:
  *         description: Post updated successfully
@@ -337,7 +471,7 @@ router.post('/posts', upload.single('image'), fitnessController.createPost);
  *       500:
  *         description: Internal Server Error
  */
-router.put('/posts/:postId', fitnessController.updatePost);
+router.put('/posts/:postId', upload.single('image'), fitnessController.updatePostController);
 
 module.exports = router;
 

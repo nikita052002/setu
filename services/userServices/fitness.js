@@ -1,21 +1,21 @@
 const exe = require('../../config/db');
 
 const getHealthVideos = async () => {
-    const query = 'SELECT * FROM health_videos';
+    const query = "SELECT * FROM health_videos WHERE status = 'Active'";
     return await exe(query);
 };
 
 const getLiveStreams = async () => {
-    const query = 'SELECT * FROM live_streaming';
+    const query = "SELECT * FROM live_streaming WHERE status = 'Active'";
     return await exe(query);
 };
 
 const getHealthEvents = async () => {
-    const query = 'SELECT * FROM health_events';
+    const query = "SELECT * FROM health_events WHERE status = 'Active'";
     return await exe(query);
 };
 const getAllPosts = () => {
-    const query = `SELECT * FROM post`;
+    const query = `SELECT * FROM post WHERE status = 'Active'`;
     return exe(query).then((result) => result.rows) // Returning the rows from the query result
     .catch((error) => {
             throw new Error(error);

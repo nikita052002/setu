@@ -29,7 +29,7 @@ const swaggerOptions = {
       },
     ],
   },
-  apis: ['./routes/admin/registerRoutes.js', './routes/admin/fitnessRoutes.js','./routes/user/fitnessRoutes.js'],
+  apis: ['./routes/admin/registerRoutes.js', './routes/admin/fitnessRoutes.js','./routes/user/fitnessRoutes.js','./routes/admin/healthInsuranceRoutes.js', './routes/user/healthInsurance.js'],
 };
 
 // Use a different variable name here

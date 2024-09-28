@@ -8,15 +8,40 @@ const createHealthVideo = async (videoData) => {
         [description, category, subcategory, video_url, is_popular || false, status || 'Active']
     );
 };
-
 const updateHealthVideo = async (videoId, videoData) => {
-    const { description, category, subcategory, video_url, is_popular, status } = videoData;
-    const query = ` UPDATE health_videos  SET description = COALESCE($1, description), category = COALESCE($2, category),  subcategory = COALESCE($3, subcategory), video_url = COALESCE($4, video_url),  is_popular = COALESCE($5, is_popular),  status = COALESCE($6, status),  updated_at = CURRENT_TIMESTAMP  WHERE video_id = $7 RETURNING *; `;
-    const values = [description, category, subcategory, video_url, is_popular, status, videoId];
+    const fieldsToUpdate = [];
+    const values = [];
+    if (videoData.description !== undefined) {
+        fieldsToUpdate.push(`description = $${fieldsToUpdate.length + 1}`);
+        values.push(videoData.description);
+    }
+    if (videoData.category !== undefined) {
+        fieldsToUpdate.push(`category = $${fieldsToUpdate.length + 1}`);
+        values.push(videoData.category);
+    }
+    if (videoData.subcategory !== undefined) {
+        fieldsToUpdate.push(`subcategory = $${fieldsToUpdate.length + 1}`);
+        values.push(videoData.subcategory);
+    }
+    if (videoData.video_url !== undefined) {
+        fieldsToUpdate.push(`video_url = $${fieldsToUpdate.length + 1}`);
+        values.push(videoData.video_url);
+    }
+    if (videoData.is_popular !== undefined) {
+        fieldsToUpdate.push(`is_popular = $${fieldsToUpdate.length + 1}`);
+        values.push(videoData.is_popular);
+    }
+    if (videoData.status !== undefined) {
+        fieldsToUpdate.push(`status = $${fieldsToUpdate.length + 1}`);
+        values.push(videoData.status);
+    }
+    if (fieldsToUpdate.length === 0) {
+        throw new Error('No fields to update');
+    }
+    const query = `UPDATE health_videos SET ${fieldsToUpdate.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE video_id = $${fieldsToUpdate.length + 1} RETURNING *;`;
+    values.push(videoId);
     return exe(query, values);
 };
-
-
 const createLiveStream = async (liveStreamData, imageFilename) => {
     const { date, time, title, category, description, video_url, is_live } = liveStreamData;
     return exe(
@@ -25,15 +50,60 @@ const createLiveStream = async (liveStreamData, imageFilename) => {
         [date, time, title, imageFilename, category, description, video_url, is_live]
     );
 };
-
 const updateLiveStream = async (streamId, liveStreamData, imageFilename) => {
-    const { date, time, title, category, description, video_url, is_live, status } = liveStreamData;
-    const query = ` UPDATE live_streaming  SET date = COALESCE($1, date), time = COALESCE($2, time),  title = COALESCE($3, title),  image = COALESCE($4, image),  category = COALESCE($5, category),  description = COALESCE($6, description), video_url = COALESCE($7, video_url),  is_live = COALESCE($8, is_live),  status = COALESCE($9, status),  updated_time = CURRENT_TIMESTAMP  WHERE id = $10  RETURNING *;`;
-    const values = [date, time, title, imageFilename, category, description, video_url, is_live, status, streamId];
-    return exe(query, values);
+    let query = 'UPDATE live_streaming SET ';
+    const values = [];
+    let setClauses = [];
+    if (liveStreamData.date) {
+        setClauses.push(`date = $${values.length + 1}`);
+        values.push(liveStreamData.date);
+    }
+    if (liveStreamData.time) {
+        setClauses.push(`time = $${values.length + 1}`);
+        values.push(liveStreamData.time);
+    }
+    if (liveStreamData.title) {
+        setClauses.push(`title = $${values.length + 1}`);
+        values.push(liveStreamData.title);
+    }
+    if (imageFilename) { 
+        setClauses.push(`image = $${values.length + 1}`);
+        values.push(imageFilename);
+    }
+    if (liveStreamData.category) {
+        setClauses.push(`category = $${values.length + 1}`);
+        values.push(liveStreamData.category);
+    }
+    if (liveStreamData.description) {
+        setClauses.push(`description = $${values.length + 1}`);
+        values.push(liveStreamData.description);
+    }
+    if (liveStreamData.video_url) {
+        setClauses.push(`video_url = $${values.length + 1}`);
+        values.push(liveStreamData.video_url);
+    }
+    if (liveStreamData.is_live) {
+        setClauses.push(`is_live = $${values.length + 1}`);
+        values.push(liveStreamData.is_live);
+    }
+    if (liveStreamData.status) {
+        setClauses.push(`status = $${values.length + 1}`);
+        values.push(liveStreamData.status);
+    }
+    if (setClauses.length === 0) {
+        throw new Error('No fields provided for update.');
+    }
+    query += setClauses.join(', ');
+    query += `, updated_time = CURRENT_TIMESTAMP WHERE id = $${values.length + 1} RETURNING *;`;
+    values.push(streamId);
+    try {
+        const result = await exe(query, values);
+        return result.rows[0]; // Return the updated live stream
+    } catch (error) {
+        console.error('Error updating live stream:', error);
+        throw error; // Handle error appropriately
+    }
 };
-
-
 const createHealthEvent = async (eventData, imageFilename) => {
     const { title, category, description, video_url, is_live, is_popular, status, date, time } = eventData;
     return exe(
@@ -43,12 +113,57 @@ const createHealthEvent = async (eventData, imageFilename) => {
     );
 };
 const updateHealthEvent = async (eventId, eventData, imageFilename) => {
-    const { title, category, description, video_url, is_live, is_popular, status, date, time } = eventData;
-    const query = ` UPDATE health_events  SET title = COALESCE($1, title),  category = COALESCE($2, category),  image = COALESCE($3, image),   description = COALESCE($4, description), video_url = COALESCE($5, video_url), is_live = COALESCE($6, is_live),  is_popular = COALESCE($7, is_popular),  status = COALESCE($8, status),  date = COALESCE($9, date),  time = COALESCE($10, time),  updated_time = CURRENT_TIMESTAMP   WHERE id = $11   RETURNING *;`;
-    const values = [title, category, imageFilename, description, video_url, is_live, is_popular, status, date, time, eventId];
+    const fields = [];
+    const values = [];
+    let paramCounter = 1;
+
+    if (eventData.title) {
+        fields.push(`title = $${paramCounter++}`);
+        values.push(eventData.title);
+    }
+    if (eventData.category) {
+        fields.push(`category = $${paramCounter++}`);
+        values.push(eventData.category);
+    }
+    if (imageFilename) {
+        fields.push(`image = $${paramCounter++}`);
+        values.push(imageFilename);
+    }
+    if (eventData.description) {
+        fields.push(`description = $${paramCounter++}`);
+        values.push(eventData.description);
+    }
+    if (eventData.video_url) {
+        fields.push(`video_url = $${paramCounter++}`);
+        values.push(eventData.video_url);
+    }
+    if (typeof eventData.is_live === 'boolean') {
+        fields.push(`is_live = $${paramCounter++}`);
+        values.push(eventData.is_live);
+    }
+    if (typeof eventData.is_popular === 'boolean') {
+        fields.push(`is_popular = $${paramCounter++}`);
+        values.push(eventData.is_popular);
+    }
+    if (eventData.status) {
+        fields.push(`status = $${paramCounter++}`);
+        values.push(eventData.status);
+    }
+    if (eventData.date) {
+        fields.push(`date = $${paramCounter++}`);
+        values.push(eventData.date);
+    }
+    if (eventData.time) {
+        fields.push(`time = $${paramCounter++}`);
+        values.push(eventData.time);
+    }
+    if (fields.length === 0) {
+        throw new Error('No fields to update');
+    }
+    values.push(eventId);
+    const query = `UPDATE health_events SET ${fields.join(', ')}, updated_time = CURRENT_TIMESTAMP WHERE id = $${paramCounter} RETURNING *;`;
     return exe(query, values);
 };
-
 const createPost = async (postData, imageFilename) => {
     const { title, description, category, status } = postData;
     const createdAt = new Date();
@@ -59,16 +174,52 @@ const createPost = async (postData, imageFilename) => {
         [title, description, category, imageFilename, status || 'Active', createdAt, updatedAt]
     );
 };
-const updatePost = (postId, postData) => {
-    const { title, description, category, image, status } = postData;
 
-    const query = ` UPDATE post SET title = $1, description = $2, category = $3, image = $4, status = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6 RETURNING *`;
-    return exe(query, [title, description, category, image, status, postId])
-        .then((result) => result.rows[0]) // Return the updated post if found
+const updatePost = (postId, postData) => {
+    const { title, description, category, image, status } = postData; 
+    const fields = [];
+    const values = [];
+    let paramCounter = 1;
+    
+    if (title) {
+        fields.push(`title = $${paramCounter++}`);
+        values.push(title);
+    }
+    if (description) {
+        fields.push(`description = $${paramCounter++}`);
+        values.push(description);
+    }
+    if (category) {
+        fields.push(`category = $${paramCounter++}`);
+        values.push(category);
+    }
+    if (image) {
+        fields.push(`image = $${paramCounter++}`);
+        values.push(image); 
+    }
+    if (status) {
+        fields.push(`status = $${paramCounter++}`);
+        values.push(status);
+    }
+    fields.push(`updated_at = CURRENT_TIMESTAMP`);
+    values.push(postId);
+    if (fields.length === 1) {
+        return Promise.reject(new Error('No fields provided for update.'));
+    }
+    const query = `UPDATE post SET ${fields.join(', ')} WHERE id = $${paramCounter} RETURNING *;`;
+
+    return exe(query, values)
+        .then((result) => {
+            if (result.rows.length === 0) {
+                return null; 
+            }
+            return result.rows[0];
+        })
         .catch((error) => {
             throw new Error(error);
         });
 };
+
 module.exports = {
     createHealthVideo,
     updateHealthVideo,
