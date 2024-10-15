@@ -85,6 +85,7 @@ const updateUserDetails = async (req, res) => {
     }
 };
 
+<<<<<<< HEAD
 const updateDetails = async (req, res) => {
     const { id } = req.params;
     const { full_name, gender, date_of_birth, mobile_no, email, status } = req.body;
@@ -103,6 +104,8 @@ const updateDetails = async (req, res) => {
     }
 };
 
+=======
+>>>>>>> 66b589c61a144b23890d2c9db40cb1c41b835830
 
 
 module.exports = {
@@ -111,6 +114,10 @@ module.exports = {
     getAllCoverAmount,
     getAllInsurer,
     addUserDetails,
+<<<<<<< HEAD
     updateUserDetails,
     updateDetails
+=======
+    updateUserDetails
+>>>>>>> 66b589c61a144b23890d2c9db40cb1c41b835830
 };

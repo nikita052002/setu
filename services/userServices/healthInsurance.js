@@ -26,6 +26,7 @@ const adduserDetails =  async (userData) => {
       throw error;
     }
 }
+<<<<<<< HEAD
 const addusersDetails =  async (userData) => {
     const { full_name, gender, date_of_birth, mobile_no, email } = userData;
     const query = `INSERT INTO add_your_details (full_name, gender, date_of_birth, mobile_no, email, status)VALUES ($1, $2, $3, $4, $5, 'active')RETURNING *;`;
@@ -36,6 +37,8 @@ const addusersDetails =  async (userData) => {
       throw error;
     }
 }
+=======
+>>>>>>> 66b589c61a144b23890d2c9db40cb1c41b835830
 const updateUserDetails = async (userData) => {
     const { id, full_name, gender, date_of_birth, mobile_no, email, status } = userData;
     let query = 'UPDATE add_your_details SET updated_at = CURRENT_TIMESTAMP';
@@ -85,6 +88,9 @@ module.exports = {
     getAllCoverAmount,
     getAllInsurer,
     adduserDetails,
+<<<<<<< HEAD
     addusersDetails,
+=======
+>>>>>>> 66b589c61a144b23890d2c9db40cb1c41b835830
     updateUserDetails
 }
